@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromoPrice Web Pro</title>
+    <style>
+        :root {
+            --bg-body: #0d1117; --bg-sidebar: #161b22; --bg-card: #21262d;
+            --border-color: #30363d; --text-main: #c9d1d9; --text-dim: #8b949e;
+            --accent-blue: #58a6ff; --hover-bg: #1c2128;
+            --btn-blue-grad: linear-gradient(135deg, #2ea043 0%, #238636 100%);
+            --btn-gray-bg: #21262d;
+            --btn-orange-grad: linear-gradient(135deg, #f0b429 0%, #d29922 100%);
+        }
+
+        /* --- Custom Scrollbar --- */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+        body { 
+            background: var(--bg-body); color: var(--text-main); 
+            font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; 
+            height: 100vh; display: flex; flex-direction: column; box-sizing: border-box;
+        }
+
+        /* --- Progress Bar --- */
+        .progress-bar { 
+            width: 0%; height: 4px; background: linear-gradient(90deg, #2ea043, #58a6ff); 
+            position: fixed; top: 0; left: 0; z-index: 9999; transition: width 0.3s ease; 
+        }
+
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        
+        /* Lokacija in Odjava Značka v Headerju */
+        .loc-badge {
+            background: linear-gradient(135deg, #1f6feb, #58a6ff); color: white;
+            padding: 4px 10px; border-radius: 8px; font-size: 13px; font-weight: bold;
+            cursor: pointer; margin-left: 10px; transition: 0.2s; border: none;
+        }
+        .loc-badge:hover { filter: brightness(1.2); transform: scale(1.05); }
+
+        .btn-logout {
+            background: var(--btn-gray-bg); border: 1px solid var(--border-color);
+            color: #ff7b72; padding: 4px 10px; border-radius: 8px; font-size: 12px;
+            cursor: pointer; margin-left: 10px; font-weight: bold; transition: 0.2s;
+        }
+        .btn-logout:hover { border-color: #ff7b72; transform: scale(1.05); }
+
+        .layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; flex: 1; overflow: hidden; }
+        .sidebar, .main { background: var(--bg-sidebar); border: 1px solid var(--border-color); border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        .sidebar { padding: 20px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+        .main { display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+        .add-section {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 15px; display: flex; flex-direction: column; gap: 10px;
+            margin: 5px 0;
+        }
+        .add-section-title { font-size: 11px; color: var(--text-dim); text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; }
+        .add-section textarea { 
+            background: var(--bg-body); color: var(--accent-blue); border: 1px solid var(--border-color); 
+            padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box; 
+            outline: none; height: 90px; font-family: monospace; resize: none; font-size: 12px; transition: 0.2s;
+        }
+        .add-section textarea:focus { border-color: var(--accent-blue); }
+        
+        button { padding: 10px 16px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; color: white; font-size: 13px; transition: 0.3s; }
+        button:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-2px); }
+        button:disabled { filter: grayscale(1); cursor: not-allowed; opacity: 0.6; }
+        
+        .btn-blue { background: var(--btn-blue-grad); width: 100%; padding: 12px; font-size: 14px; }
+        .btn-gray { background: var(--btn-gray-bg); border: 1px solid var(--border-color); color: var(--text-main); width: 100%; }
+        .btn-orange { background: var(--btn-orange-grad); color: white; margin-bottom: 5px; width: 100%; }
+        .btn-red { background: linear-gradient(135deg, #ff7b72 0%, #da3633 100%); margin-top: auto; width: 100%;}
+
+        .table-wrap { overflow-y: auto; flex: 1; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; text-align: left; }
+        th { background: var(--bg-sidebar); padding: 15px 10px; position: sticky; top: 0; z-index: 20; color: var(--text-dim); border-bottom: 2px solid var(--border-color); user-select: none; }
+        td { padding: 10px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        tr:hover td { background: var(--hover-bg); }
+
+        .brand-tag { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; margin-right: 8px; }
+        .brand-tag:hover { filter: brightness(1.2); } 
+        
+        .badge-novo { background: linear-gradient(135deg, #1f6feb, #58a6ff); color: white; font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: bold; display: inline-block; margin: 2px 0; letter-spacing: 0.5px;}
+        .badge-promo { background: linear-gradient(135deg, #ff7b72, #da3633); color: white; font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: bold; display: inline-block; margin: 2px 0; letter-spacing: 0.5px;}
+
+        .status-dot {
+            width: 18px; height: 18px; border-radius: 50%; 
+            display: inline-flex; align-items: center; justify-content: center;
+            cursor: pointer; border: 2px solid transparent; transition: all 0.2s; flex-shrink: 0;
+            font-size: 10px; font-weight: 900; color: #000; user-select: none;
+        }
+        .status-dot:hover { transform: scale(1.2); filter: brightness(1.1); }
+        .dot-yellow { background: #facc15; border-color: #eab308; box-shadow: 0 0 5px rgba(250, 204, 21, 0.4); }
+        .dot-purple { background: #a855f7; border-color: #9333ea; box-shadow: 0 0 5px rgba(168, 85, 247, 0.4); color: white; }
+        .dot-red { background: #ef4444; border-color: #dc2626; color: white; box-shadow: 0 0 8px rgba(239, 68, 68, 0.6); animation: pulse-red 2s infinite; } 
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        .price-std-old { color: var(--text-dim); text-decoration: line-through; font-size: 12px; }
+        .price-promo-now { color: #ff7b72; font-weight: 800; font-size: 15px; }
+        .price-reg-now { font-weight: 700; font-size: 15px; color: var(--text-main); }
+        .discount-badge { background: #ff7b72; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 5px; border-radius: 4px; margin-left: 5px; }
+
+        .filter-row { display: flex; align-items: center; gap: 10px; font-size: 13px; cursor: pointer; color: var(--text-main); margin-bottom: 8px; user-select: none; }
+        .filter-row input { cursor: pointer; margin: 0; }
+        .sub-filter { margin-left: 25px; padding-left: 10px; border-left: 2px solid var(--border-color); margin-bottom: 10px; display: none; }
+        .sub-filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+
+        .hist-click { 
+            cursor: pointer; display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 6px; transition: 0.2s;
+            background: var(--bg-card); border: 1px solid var(--border-color);
+        }
+        .hist-click:hover { background: var(--hover-bg); border-color: var(--accent-blue); transform: translateY(-2px); }
+        
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center;
+            z-index: 10000; opacity: 0; visibility: hidden; transition: 0.2s;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-content {
+            background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; width: 90%; max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8); display: flex; flex-direction: column; max-height: 70vh;
+        }
+        .modal-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { margin: 0; color: var(--accent-blue); font-size: 16px; display: flex; align-items: center; gap: 8px;}
+        .modal-close { background: transparent; border: none; color: var(--text-dim); font-size: 18px; cursor: pointer; padding: 0; margin: 0; width: auto;}
+        .modal-close:hover { color: #ff7b72; transform: scale(1.2); }
+        .modal-body { padding: 15px 20px; overflow-y: auto; flex: 1; }
+        .hist-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 10px 0; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
+        .hist-row:last-child { border-bottom: none; }
+        .hist-row-current { border-left: 3px solid #2ea043; padding-left: 10px; margin-left: -13px; background: rgba(46, 160, 67, 0.1); border-radius: 4px;}
+
+        #statusInfo { color: var(--text-dim); font-size: 13px; margin-top: 10px; font-family: monospace; }
+
+        /* --- OVERLAYS --- */
+        .full-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-body); z-index: 100000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .loc-box {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            padding: 40px; border-radius: 16px; text-align: center;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.8); max-width: 400px; width: 100%; box-sizing: border-box;
+        }
+        .loc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; }
+        .btn-loc {
+            padding: 20px; font-size: 16px; background: var(--bg-sidebar); 
+            border: 2px solid var(--border-color); color: var(--text-main); 
+            border-radius: 12px; cursor: pointer; transition: 0.3s; font-weight: bold;
+        }
+        .btn-loc:hover { background: var(--hover-bg); border-color: var(--accent-blue); transform: translateY(-3px); box-shadow: 0 5px 15px rgba(88, 166, 255, 0.2); }
+
+        /* Login Inputs */
+        .login-input {
+            width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px;
+            background: var(--bg-body); border: 1px solid var(--border-color);
+            color: white; outline: none; box-sizing: border-box; font-size: 14px;
+        }
+        .login-input:focus { border-color: var(--accent-blue); }
+        .error-msg { color: #ff7b72; font-size: 12px; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="loginOverlay" class="full-overlay" style="display: flex;">
+        <div class="loc-box">
+            <h1 style="color: var(--accent-blue); margin-top:0;">🏷️ Prijava</h1>
+            <p style="color: var(--text-dim); font-size: 14px; margin-bottom: 25px;">Za dostop se prijavi z računom.</p>
+            <input type="email" id="emailInput" class="login-input" placeholder="Email naslov">
+            <input type="password" id="passwordInput" class="login-input" placeholder="Geslo">
+            <button class="btn-blue" onclick="handleLogin()" style="width: 100%;">PRIJAVI SE</button>
+            <div id="loginError" class="error-msg">Napačen email ali geslo.</div>
+        </div>
+    </div>
+
+    <div id="locationOverlay" class="full-overlay" style="display:none;">
+        <div class="loc-box">
+            <h1 style="color: var(--accent-blue); margin-top:0;">🏷️ PromoPriceZex</h1>
+            <p style="color: var(--text-dim); font-size: 16px;">Izberi svojo poslovalnico za nadaljevanje:</p>
+            <div class="loc-grid">
+                <button class="btn-loc" onclick="setLocation('Maribor')">📍 Maribor</button>
+                <button class="btn-loc" onclick="setLocation('BTC')">📍 BTC</button>
+                <button class="btn-loc" onclick="setLocation('Šiška')">📍 Šiška</button>
+                <button class="btn-loc" onclick="setLocation('Zagreb')">📍 Zagreb</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="appContainer" style="display:none; height:100%; flex-direction:column;">
+        <div class="progress-bar" id="pBar"></div>
+
+        <div class="header-bar">
+            <h2 style="margin:0; color:var(--accent-blue); display:flex; align-items:center;">
+                🏷️ PromoPriceZex <span style="font-size:12px; color:var(--text-dim); margin-left:10px;">WEB PRO</span>
+                <div style="display:flex; margin-left: 20px;">
+                    <button id="locDisplay" class="loc-badge" onclick="changeLocation()" title="Spremeni lokacijo">📍 LOKACIJA</button>
+                    <button class="loc-badge" style="background: var(--btn-gray-bg); border: 1px solid var(--border-color); color: var(--text-main);" onclick="openSettings()" title="Nastavitve obvestil">⚙️ Nastavitve</button>
+                    <button class="btn-logout" onclick="handleLogout()">Odjava</button>
+                </div>
+            </h2>
+            <div id="statusInfo">Status: Pripravljen. <span id="dbCount" style="display:none;">0</span></div>
+        </div>
+
+        <div class="layout">
+            <div class="sidebar">
+                <button id="btnRescanAll" class="btn-blue">🔄 OSVEŽI VSE ARTIKLE</button>
+                
+                <div class="add-section">
+                    <div class="add-section-title">Dodaj nove artikle</div>
+                    <textarea id="idsIn" placeholder="Prilepi ID-je...&#10;1234567&#10;9876543"></textarea>
+                    <button id="btnScanNew" class="btn-gray">➕ SKENIRAJ NOVE</button>
+                </div>
+
+                <div style="height:1px; background:var(--border-color); margin: 10px 0 10px 0;"></div>
+                <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; font-weight:bold; margin-bottom:10px;">Filtri prikaza</div>
+                
+                <label class="filter-row">
+                    <input type="radio" name="filterMode" value="all" checked onchange="renderTable()"> 
+                    Prikaži vse
+                </label>
+                
+                <label class="filter-row">
+                    <input type="radio" name="filterMode" value="promo" onchange="renderTable()"> 
+                    <b style="color:#ff7b72">🔥 Samo PROMO (-%)</b>
+                </label>
+                <div id="promoSubFilter" class="sub-filter">
+                    <div id="promoDiscountList" class="sub-filter-grid"></div>
+                </div>
+
+                <label class="filter-row">
+                    <input type="radio" name="filterMode" value="new" onchange="renderTable()"> 
+                    <b style="color:var(--accent-blue)">✨ Samo NOVE</b>
+                </label>
+                <label class="filter-row">
+                    <input type="radio" name="filterMode" value="diff" onchange="renderTable()"> 
+                    <b style="color:#d29922">⚠️ Samo SPREMEMBE</b>
+                </label>
+                
+                <div style="height:1px; background:var(--border-color); margin: 15px 0 10px 0;"></div>
+                <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; font-weight:bold; margin-bottom:10px;">Status Krogcev</div>
+                
+                <label class="filter-row">
+                    <input type="radio" name="filterMode" value="dotYellow" onchange="renderTable()"> 
+                    🟡 Rumeni krogeci
+                </label>
+                <label class="filter-row">
+                    <input type="radio" name="filterMode" value="dotPurple" onchange="renderTable()"> 
+                    🟣 Vijolčni krogeci
+                </label>
+                <label class="filter-row">
+                    <input type="radio" name="filterMode" value="dotRed" onchange="renderTable()"> 
+                    <b style="color:#ff7b72">🔴 Za spremenit (!!)</b>
+                </label>
+
+                <div id="massActionContainer" style="display:none; margin-top: 8px;">
+                    <button id="btnMassChange" class="btn-gray" style="font-size: 11px; padding: 8px;">...</button>
+                </div>
+
+                <div style="flex: 1;"></div>
+                
+                <button id="btnPrintList" class="btn-orange">🖨️ NATISNI SEZNAM</button>
+                <button id="btnClearDB" class="btn-red">🗑️ IZBRIŠI BAZO</button>
+            </div>
+
+            <div class="main">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">ID</th>
+                                <th style="width: 40px; text-align:center;"></th>
+                                <th style="width: 70px;">TAG</th>
+                                <th id="thBrand" style="cursor:pointer; color:var(--accent-blue);" title="Klikni za sortiranje po abecedi">ARTIKEL ↕</th>
+                                <th style="width: 150px;">CENA</th>
+                                <th style="width: 130px;">ZADNJE STANJE</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="histModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle"></h3>
+                    <button class="modal-close" id="closeModal">✖</button>
+                </div>
+                <div class="modal-body" id="modalBody"></div>
+            </div>
+        </div>
+
+        <div id="settingsModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>⚙️ Nastavitve — <span id="settingsLocName" style="color:var(--text-main);"></span></h3>
+                    <button class="modal-close" id="closeSettingsModal">✖</button>
+                </div>
+                <div class="modal-body">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text-main); margin-bottom:15px; cursor:pointer; user-select:none;">
+                        <input type="checkbox" id="autoScanEnabledCheckbox" style="cursor:pointer; margin:0; width:auto;" onchange="toggleSettingsFieldsEnabled()">
+                        <b>▶️ Omogoči samodejno osveževanje za to poslovalnico</b>
+                    </label>
+
+                    <div id="settingsSubFields">
+                        <div style="font-size:12px; color:var(--text-dim); margin-bottom:10px;">
+                            Discord Webhook URL za to poslovalnico. Ob samodejnem osveževanju se na ta webhook pošlje seznam sprememb cen.
+                        </div>
+                        <input type="text" id="webhookInput" class="login-input" placeholder="https://discord.com/api/webhooks/...">
+
+                        <div style="font-size:12px; color:var(--text-dim); margin: 15px 0 8px;">Interval samodejnega osveževanja cen:</div>
+                        <select id="intervalSelect" class="login-input" style="cursor:pointer;">
+                            <option value="1">Vsako 1 uro</option>
+                            <option value="2">Vsaki 2 uri</option>
+                            <option value="3">Vsake 3 ure</option>
+                            <option value="4">Vsake 4 ure</option>
+                            <option value="6">Vsakih 6 ur</option>
+                            <option value="8">Vsakih 8 ur</option>
+                        </select>
+
+                        <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-main); margin: 5px 0 15px; cursor:pointer; user-select:none;">
+                            <input type="checkbox" id="notifyEnabledCheckbox" style="cursor:pointer; margin:0; width:auto;">
+                            🔔 Pošiljaj Discord obvestila o spremembah
+                        </label>
+
+                        <button class="btn-gray" onclick="sendTestNotification()" style="width:100%; margin-bottom:10px;">📨 Pošlji testno obvestilo</button>
+                        <div id="testNotifyMsg" style="font-size:12px; margin-bottom:10px; display:none;"></div>
+                    </div>
+
+                    <button class="btn-blue" onclick="saveSettings()" style="width:100%;">💾 SHRANI</button>
+                    <div id="webhookSaveMsg" style="font-size:12px; color:#2ea043; margin-top:10px; display:none;">✅ Shranjeno!</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyANtdfz1veuaRiugYsNSHgW7LqzRU6LmYI",
+            authDomain: "promoprice-b1aa3.firebaseapp.com",
+            projectId: "promoprice-b1aa3",
+            storageBucket: "promoprice-b1aa3.firebasestorage.app",
+            messagingSenderId: "1009330563790",
+            appId: "1:1009330563790:web:126fa492b11822546a3e9f",
+            measurementId: "G-QNQVB8R2KF"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const firestoreDB = getFirestore(app);
+
+        // -- Globalne spremenljivke aplikacije --
+        let sessionNewIds = [];
+        let sortBrandAsc = true; 
+        let selectedDiscounts = new Set(); 
+        let currentFilteredIds = []; 
+        let currentLoc = null;
+        let memoryDB = {}; // Nadomestek za localStorage (Podatki naloženi iz Firebase)
+        let currentWebhookUrl = null;
+        let currentIntervalHours = 1;
+        let currentNotifyEnabled = true;
+        let currentAutoScanEnabled = true;
+
+        // --- AUTH SISTEM ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // Uporabnik prijavljen, prikaži izbiro lokacije
+                document.getElementById('loginOverlay').style.display = 'none';
+                initApp();
+            } else {
+                // Uporabnik odjavljen, pokaži login
+                document.getElementById('loginOverlay').style.display = 'flex';
+                document.getElementById('locationOverlay').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'none';
+            }
+        });
+
+        window.handleLogin = () => {
+            const email = document.getElementById('emailInput').value;
+            const pass = document.getElementById('passwordInput').value;
+            const errorBox = document.getElementById('loginError');
+            errorBox.style.display = 'none';
+
+            signInWithEmailAndPassword(auth, email, pass).catch((error) => {
+                errorBox.style.display = 'block';
+                console.error("Login napaka:", error);
+            });
+        };
+
+        window.handleLogout = () => {
+            signOut(auth);
+        };
+
+        // --- SISTEM ZA LOKACIJE IN FIREBASE BAZO ---
+        async function initApp() {
+            if (!auth.currentUser) return; // Varovalka
+
+            currentLoc = localStorage.getItem('spider_location');
+            if (!currentLoc) {
+                document.getElementById('locationOverlay').style.display = 'flex';
+                document.getElementById('appContainer').style.display = 'none';
+            } else {
+                document.getElementById('locationOverlay').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'flex';
+                document.getElementById('locDisplay').innerText = `📍 ${currentLoc}`;
+                
+                // Ponastavimo filtre
+                document.querySelector('input[value="all"]').checked = true;
+                selectedDiscounts.clear();
+                sessionNewIds = [];
+
+                updateStatus(`<span style="color:var(--accent-blue);">Skeniram oblak (Firebase) za poslovalnico ${currentLoc}...</span>`);
+                
+                // Branje baze iz Firebase
+                try {
+                    const docRef = doc(firestoreDB, "baza_poslovalnic", currentLoc);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        memoryDB = docSnap.data();
+                    } else {
+                        memoryDB = {}; // Prazna baza
+                    }
+                    updateStatus(`Status: Pripravljen. Baza uspešno naložena iz oblaka.`);
+                    const countEl = document.getElementById('dbCount');
+                    if (countEl) countEl.innerText = Object.keys(memoryDB).length;
+                } catch (error) {
+                    console.error("Napaka pri branju iz Firebase:", error);
+                    updateStatus(`<span style="color:#ff7b72;">Napaka pri nalaganju baze.</span>`);
+                    memoryDB = {};
+                }
+
+                // Branje nastavitev (Discord webhook, interval, obvestila) za to poslovalnico
+                try {
+                    const settingsSnap = await getDoc(doc(firestoreDB, "nastavitve_poslovalnic", currentLoc));
+                    if (settingsSnap.exists()) {
+                        const s = settingsSnap.data();
+                        currentWebhookUrl = s.webhookUrl || null;
+                        currentIntervalHours = s.intervalHours || 1;
+                        currentNotifyEnabled = s.notifyEnabled !== false;
+                        currentAutoScanEnabled = s.autoScanEnabled !== false;
+                    } else {
+                        currentWebhookUrl = null;
+                        currentIntervalHours = 1;
+                        currentNotifyEnabled = true;
+                        currentAutoScanEnabled = true;
+                    }
+                } catch (error) {
+                    console.error("Napaka pri branju nastavitev:", error);
+                    currentWebhookUrl = null;
+                    currentIntervalHours = 1;
+                    currentNotifyEnabled = true;
+                    currentAutoScanEnabled = true;
+                }
+
+                window.renderTable();
+            }
+        }
+
+        window.setLocation = (loc) => {
+            localStorage.setItem('spider_location', loc);
+            initApp();
+        };
+
+        window.changeLocation = () => {
+            localStorage.removeItem('spider_location');
+            initApp();
+        };
+
+        // --- NASTAVITVE (DISCORD WEBHOOK) ---
+        // Webhook URL se shrani v Firestore in ga uporablja urni GitHub Actions cron (glej scripts/auto-scan.js),
+        // ki teče na strežniku ne glede na to, ali je stran tukaj odprta.
+        window.toggleSettingsFieldsEnabled = () => {
+            const enabled = document.getElementById('autoScanEnabledCheckbox').checked;
+            const subFields = document.getElementById('settingsSubFields');
+            subFields.style.opacity = enabled ? '1' : '0.4';
+            subFields.style.pointerEvents = enabled ? 'auto' : 'none';
+        };
+
+        window.openSettings = () => {
+            document.getElementById('settingsLocName').innerText = currentLoc;
+            document.getElementById('webhookInput').value = currentWebhookUrl || '';
+            document.getElementById('intervalSelect').value = String(currentIntervalHours);
+            document.getElementById('notifyEnabledCheckbox').checked = currentNotifyEnabled;
+            document.getElementById('autoScanEnabledCheckbox').checked = currentAutoScanEnabled;
+            window.toggleSettingsFieldsEnabled();
+            document.getElementById('webhookSaveMsg').style.display = 'none';
+            document.getElementById('settingsModal').classList.add('active');
+        };
+
+        window.saveSettings = async () => {
+            const url = document.getElementById('webhookInput').value.trim();
+            const intervalHours = parseInt(document.getElementById('intervalSelect').value, 10);
+            const notifyEnabled = document.getElementById('notifyEnabledCheckbox').checked;
+            const autoScanEnabled = document.getElementById('autoScanEnabledCheckbox').checked;
+
+            currentWebhookUrl = url || null;
+            currentIntervalHours = intervalHours;
+            currentNotifyEnabled = notifyEnabled;
+            currentAutoScanEnabled = autoScanEnabled;
+
+            try {
+                await setDoc(doc(firestoreDB, "nastavitve_poslovalnic", currentLoc), {
+                    webhookUrl: currentWebhookUrl,
+                    intervalHours: currentIntervalHours,
+                    notifyEnabled: currentNotifyEnabled,
+                    autoScanEnabled: currentAutoScanEnabled
+                });
+                const msg = document.getElementById('webhookSaveMsg');
+                msg.style.display = 'block';
+                setTimeout(() => { msg.style.display = 'none'; }, 2000);
+            } catch (e) {
+                console.error("Napaka pri shranjevanju nastavitev:", e);
+                alert("Napaka pri shranjevanju nastavitev. Preveri internet!");
+            }
+        };
+
+        window.sendTestNotification = async () => {
+            const url = document.getElementById('webhookInput').value.trim();
+            const msgEl = document.getElementById('testNotifyMsg');
+            msgEl.style.display = 'block';
+
+            if (!url) {
+                msgEl.style.color = '#ff7b72';
+                msgEl.innerText = '⚠️ Najprej vnesi webhook URL.';
+                return;
+            }
+
+            msgEl.style.color = 'var(--text-dim)';
+            msgEl.innerText = '⏳ Pošiljam...';
+
+            try {
+                const r = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        embeds: [{
+                            title: '✅ Testno obvestilo — PromoPriceZex',
+                            description: `Webhook za poslovalnico **${currentLoc}** deluje pravilno! 🎉`,
+                            color: 0x58a6ff,
+                            timestamp: new Date().toISOString()
+                        }]
+                    })
+                });
+                if (r.ok) {
+                    msgEl.style.color = '#2ea043';
+                    msgEl.innerText = '✅ Poslano! Preveri Discord kanal.';
+                } else {
+                    msgEl.style.color = '#ff7b72';
+                    msgEl.innerText = `❌ Discord je vrnil napako (status ${r.status}). Preveri URL.`;
+                }
+            } catch (e) {
+                msgEl.style.color = '#ff7b72';
+                msgEl.innerText = '❌ Napaka pri pošiljanju. Preveri internet in URL.';
+                console.error("Napaka pri testnem obvestilu:", e);
+            }
+        };
+
+        document.getElementById('closeSettingsModal').onclick = () => document.getElementById('settingsModal').classList.remove('active');
+        document.getElementById('settingsModal').onclick = (e) => {
+            if (e.target.id === 'settingsModal') document.getElementById('settingsModal').classList.remove('active');
+        };
+
+        // Funkcija, ki sedaj bere iz spomina (podatki preneseni iz Firebase ob loginu)
+        function getDB() {
+            return memoryDB;
+        }
+
+        // Funkcija shrani v spomin IN v Firebase
+        function saveDB(db) {
+            memoryDB = db;
+            if (!currentLoc) return;
+            
+            const countEl = document.getElementById('dbCount');
+            if (countEl) countEl.innerText = Object.keys(db).length;
+
+            // Zapišemo v oblak (asinhrono v ozadju, ne blokira aplikacije)
+            setDoc(doc(firestoreDB, "baza_poslovalnic", currentLoc), db).catch(e => {
+                console.error("Napaka pri shranjevanju v oblak:", e);
+                alert("Opozorilo: Sprememba ni bila shranjena v oblak. Preveri internet!");
+            });
+        }
+
+        function getBrand(title) { 
+            return title ? title.trim().split(/\s+/)[0].toUpperCase() : "NEZNANO"; 
+        }
+
+        function formatTime(s) { 
+            if (s < 0) s = 0;
+            return `${Math.floor(s/60)}m ${Math.floor(s%60)}s`; 
+        }
+
+        function updateStatus(htmlContent) {
+            const statusEl = document.getElementById('statusInfo');
+            if (statusEl) statusEl.innerHTML = htmlContent;
+        }
+
+        // --- 2. POSAMEZNO SKENIRANJE PREKO STREŽNIKA ---
+        async function scanItem(id) {
+            try {
+                // POZOR pri premiku na web: Zamenjaj localhost z dejanskim API-jem
+                const url = `https://promoprice.onrender.com/api/scan?id=${id}`;
+                const r = await fetch(url);
+                if (!r.ok) return null;
+                
+                const data = await r.json();
+                if (data.error) return null;
+
+                const docStr = new DOMParser().parseFromString(data.html, 'text/html');
+                const pS = docStr.querySelector('.price-section-redesign__price, .price-box__price');
+                const betterPrices = docStr.querySelectorAll('.better-price');
+                let promo = null;
+
+                for (const bp of betterPrices) {
+                    if (bp.innerHTML.toUpperCase().includes('SMART')) continue;
+                    const amountEl = bp.querySelector('.better-price__amount');
+                    if (amountEl) {
+                        promo = parseFloat(amountEl.innerText.replace(/\./g, '').replace(/,/g, '.').replace(/[^\d.]/g, ''));
+                        break;
+                    }
+                }
+
+                if (pS) {
+                    const std = parseFloat(pS.innerText.replace(/\./g, '').replace(/,/g, '.').replace(/[^\d.]/g, ''));
+                    const title = docStr.querySelector('h1.detail__title')?.innerText.trim() || "Neznano";
+                    
+                    const now = new Date();
+                    return { 
+                        id, 
+                        date: now.toLocaleDateString('sl-SI'), 
+                        time: now.getHours() + ":" + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes(), 
+                        std, 
+                        promo, 
+                        title 
+                    };
+                }
+            } catch (e) { 
+                console.error("Napaka pri skeniranju", id, e); 
+            }
+            return null;
+        }
+
+        // --- 3. MASOVNO SKENIRANJE ---
+        let isScanning = false;
+        
+        async function scanLoop(ids) {
+            if (isScanning) return alert("Skeniranje že poteka!");
+            isScanning = true;
+
+            const btnRescan = document.getElementById('btnRescanAll');
+            const btnNew = document.getElementById('btnScanNew');
+            const pBar = document.getElementById('pBar');
+            if (btnRescan) btnRescan.disabled = true;
+            if (btnNew) btnNew.disabled = true;
+
+            let db = getDB();
+            const batchSize = 3;
+            const delayMs = 1500;
+            const avgTimePerBatch = 2.2;
+
+            try {
+                for (let i = 0; i < ids.length; i += batchSize) {
+                    const currentIds = ids.slice(i, i + batchSize);
+                    
+                    const remainingBatches = Math.ceil((ids.length - i) / batchSize);
+                    const eta = formatTime(remainingBatches * avgTimePerBatch);
+                    const percentCompleted = Math.round((i / ids.length) * 100);
+                    
+                    if (pBar) pBar.style.width = percentCompleted + '%';
+                    
+                    updateStatus(
+                        `Skeniranje: <b style="color:white;">${Math.min(i + batchSize, ids.length)} / ${ids.length}</b> ` +
+                        `<span style="color:#ff7b72; margin-left:15px; font-weight:bold;">⏳ ETA: ${eta}</span>`
+                    );
+                    
+                    const results = await Promise.all(currentIds.map(id => scanItem(id)));
+                    
+                    results.forEach(res => {
+                        if (res) {
+                            let prevHist = db[res.id] ? (Array.isArray(db[res.id]) ? db[res.id] : db[res.id].history) : null;
+                            let prev = (prevHist && prevHist.length > 0) ? prevHist[prevHist.length - 1] : null;
+
+                            let newTag = (res.promo && res.promo < res.std) ? 'yellow' : null;
+                            
+                            if (prev) {
+                                let prevStatus = prev.tagStatus || (prev.promo && prev.promo < prev.std ? 'yellow' : null);
+                                
+                                if (prevStatus === 'purple' || prevStatus === 'red') {
+                                    let oldPrice = prev.promo || prev.std;
+                                    let newPrice = res.promo || res.std;
+                                    
+                                    if (oldPrice !== newPrice) {
+                                        newTag = 'red'; 
+                                    } else {
+                                        newTag = prevStatus; 
+                                    }
+                                }
+                            }
+                            res.tagStatus = newTag;
+
+                            if (!db[res.id]) db[res.id] = { history: [] };
+                            if (Array.isArray(db[res.id])) {
+                                db[res.id] = { history: db[res.id] };
+                            }
+                            
+                            db[res.id].history.push(res);
+                            if (db[res.id].history.length > 20) db[res.id].history.shift(); 
+                        }
+                    });
+
+                    saveDB(db);
+                    window.renderTable(); 
+                    
+                    if (i + batchSize < ids.length) {
+                        await new Promise(resolve => setTimeout(resolve, delayMs));
+                    }
+                }
+
+                if (pBar) {
+                    pBar.style.width = '100%';
+                    setTimeout(() => pBar.style.width = '0%', 2000); 
+                }
+                updateStatus(`<span style="color:#2ea043; font-weight:bold;">✅ Končano! V bazi (${currentLoc}) je ${Object.keys(db).length} artiklov.</span>`);
+
+            } catch (error) {
+                console.error("Napaka med zanko:", error);
+                updateStatus(`<span style="color:#da3633; font-weight:bold;">❌ Napaka pri obdelavi!</span>`);
+            } finally {
+                isScanning = false;
+                if (btnRescan) btnRescan.disabled = false; 
+                if (btnNew) btnNew.disabled = false;
+            }
+        }
+
+        window.toggleTagStatus = function(id) {
+            let db = getDB();
+            if (!db[id]) return;
+            let entry = db[id];
+            let hist = Array.isArray(entry) ? entry : entry.history;
+            if (hist.length === 0) return;
+            let last = hist[hist.length - 1];
+            
+            let currentStatus = last.tagStatus || (last.promo && last.promo < last.std ? 'yellow' : null);
+            if (currentStatus === 'yellow') last.tagStatus = 'purple';
+            else if (currentStatus === 'purple') last.tagStatus = 'yellow';
+            else if (currentStatus === 'red') last.tagStatus = (last.promo && last.promo < last.std) ? 'yellow' : null;
+
+            saveDB(db);
+            window.renderTable();
+        };
+
+        window.massChangeDots = function(targetColor) {
+            if (currentFilteredIds.length === 0) return;
+            const colorName = targetColor === 'purple' ? 'vijolčne' : 'rumene';
+            if (!confirm(`Zares želiš spremeniti VSE prikazane krogce v ${colorName}?`)) return;
+            
+            let db = getDB();
+            currentFilteredIds.forEach(id => {
+                let entry = db[id];
+                let hist = Array.isArray(entry) ? entry : entry.history;
+                if (hist && hist.length > 0) {
+                    hist[hist.length - 1].tagStatus = targetColor;
+                }
+            });
+            saveDB(db);
+            window.renderTable();
+        };
+
+        window.handleDiscountChange = function(checkbox) {
+            const val = parseInt(checkbox.value);
+            if (checkbox.checked) selectedDiscounts.add(val);
+            else selectedDiscounts.delete(val);
+            window.renderTable(); 
+        };
+
+        // --- 4. IZRIS TABELE Z FILTRI ---
+        window.renderTable = function() {
+            const db = getDB();
+            const tBody = document.getElementById('tBody');
+            if (!tBody) return; 
+            tBody.innerHTML = '';
+
+            let ids = Object.keys(db);
+            const countEl = document.getElementById('dbCount');
+            if (countEl) countEl.innerText = ids.length;
+
+            const filterModeEl = document.querySelector('input[name="filterMode"]:checked');
+            const filterMode = filterModeEl ? filterModeEl.value : 'all';
+
+            const massActionContainer = document.getElementById('massActionContainer');
+            const btnMassChange = document.getElementById('btnMassChange');
+            if (filterMode === 'dotYellow') {
+                massActionContainer.style.display = 'block';
+                btnMassChange.innerHTML = '🟣 Spremeni vse v vijolčno';
+                btnMassChange.onclick = () => window.massChangeDots('purple');
+            } else if (filterMode === 'dotPurple') {
+                massActionContainer.style.display = 'block';
+                btnMassChange.innerHTML = '🟡 Spremeni vse v rumeno';
+                btnMassChange.onclick = () => window.massChangeDots('yellow');
+            } else {
+                massActionContainer.style.display = 'none';
+            }
+
+            const promoSubFilter = document.getElementById('promoSubFilter');
+            if (filterMode === 'promo') {
+                promoSubFilter.style.display = 'block';
+                let availableDiscounts = new Set();
+                ids.forEach(id => {
+                    let entry = db[id];
+                    let hist = Array.isArray(entry) ? entry : entry.history;
+                    if (!hist || hist.length === 0) return;
+                    const last = hist[hist.length - 1];
+                    if (last.promo && last.promo < last.std) {
+                        availableDiscounts.add(Math.round(((last.std - last.promo) / last.std) * 100));
+                    }
+                });
+                
+                let sortedDiscounts = Array.from(availableDiscounts).sort((a, b) => b - a);
+                const currentListStr = sortedDiscounts.join(',');
+                if (promoSubFilter.dataset.listStr !== currentListStr) {
+                    promoSubFilter.dataset.listStr = currentListStr;
+                    let html = '';
+                    sortedDiscounts.forEach(d => {
+                        let checked = selectedDiscounts.has(d) ? 'checked' : '';
+                        html += `<label class="filter-row" style="font-size:11px;">
+                                    <input type="checkbox" value="${d}" ${checked} onchange="handleDiscountChange(this)"> -${d}%
+                                 </label>`;
+                    });
+                    document.getElementById('promoDiscountList').innerHTML = html;
+                }
+            } else {
+                promoSubFilter.style.display = 'none';
+            }
+
+            let filteredIds = ids.filter(id => {
+                let entry = db[id];
+                let hist = Array.isArray(entry) ? entry : entry.history;
+                if (!hist || hist.length === 0) return false;
+                const last = hist[hist.length - 1]; 
+                
+                if (filterMode === 'promo') {
+                    if (!last.promo || last.promo >= last.std) return false;
+                    if (selectedDiscounts.size > 0) {
+                        let d = Math.round(((last.std - last.promo) / last.std) * 100);
+                        if (!selectedDiscounts.has(d)) return false;
+                    }
+                } else if (filterMode === 'new') {
+                    if (!sessionNewIds.includes(id)) return false;
+                } else if (filterMode === 'diff') {
+                    if (hist.length < 2) return false; 
+                    const prev = hist[hist.length - 2];
+                    if (last.std === prev.std && last.promo === prev.promo) return false; 
+                } else if (filterMode === 'dotYellow') {
+                    let s = last.tagStatus || (last.promo && last.promo < last.std ? 'yellow' : null);
+                    if (s !== 'yellow') return false;
+                } else if (filterMode === 'dotPurple') {
+                    if (last.tagStatus !== 'purple') return false;
+                } else if (filterMode === 'dotRed') {
+                    if (last.tagStatus !== 'red') return false;
+                }
+                return true;
+            });
+
+            filteredIds.sort((a, b) => {
+                let histA = Array.isArray(db[a]) ? db[a] : db[a].history;
+                let histB = Array.isArray(db[b]) ? db[b] : db[b].history;
+                const brandA = getBrand(histA[histA.length - 1].title);
+                const brandB = getBrand(histB[histB.length - 1].title);
+                if (sortBrandAsc) return brandA.localeCompare(brandB, 'sl');
+                else return brandB.localeCompare(brandA, 'sl');
+            });
+
+            currentFilteredIds = filteredIds;
+
+            filteredIds.forEach(id => {
+                let entry = db[id];
+                let hist = Array.isArray(entry) ? entry : entry.history;
+                const last = hist[hist.length - 1]; 
+                const brand = getBrand(last.title);
+                
+                let dotHtml = '';
+                let currentStatus = last.tagStatus || (last.promo && last.promo < last.std ? 'yellow' : null);
+                if (currentStatus) {
+                    const alertText = currentStatus === 'red' ? '!!' : '';
+                    dotHtml = `<div class="status-dot dot-${currentStatus}" onclick="toggleTagStatus('${id}')">${alertText}</div>`;
+                }
+
+                let badgesHtml = '';
+                if (sessionNewIds.includes(id)) badgesHtml += `<span class="badge-novo">NOVO</span><br>`;
+                if (last.promo && last.promo < last.std) badgesHtml += `<span class="badge-promo">PROMO</span>`;
+                
+                let discount = 0;
+                let priceHtml = '';
+                if (last.promo && last.promo < last.std) {
+                    discount = Math.round(((last.std - last.promo) / last.std) * 100);
+                    priceHtml = `
+                        <div>
+                            <span class="price-std-old">${last.std.toFixed(2)} €</span>
+                            <span class="discount-badge">-${discount}%</span><br>
+                            <span class="price-promo-now">${last.promo.toFixed(2)} €</span>
+                        </div>`;
+                } else {
+                    priceHtml = `<span class="price-reg-now">${last.std.toFixed(2)} €</span>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-family:monospace;"><a href="https://www.mimovrste.com/id/${id}" target="_blank" style="color:var(--accent-blue); text-decoration:none;">${id}</a></td>
+                    <td style="text-align:center;">${dotHtml}</td>
+                    <td style="vertical-align: middle;">${badgesHtml}</td>
+                    <td><span class="brand-tag">${brand}</span> ${last.title}</td>
+                    <td>${priceHtml}</td>
+                    <td>
+                        <div class="hist-click" data-id="${id}">
+                            <span style="font-size:11px; margin-right:8px;">${last.date} ${last.time}</span>
+                            <span style="font-size:14px;">📊</span>
+                        </div>
+                    </td>
+                `;
+                tr.querySelector('.hist-click').addEventListener('click', function() {
+                    openHistoryModal(this.getAttribute('data-id'));
+                });
+                tBody.appendChild(tr);
+            });
+        };
+
+        document.getElementById('thBrand').onclick = () => {
+            sortBrandAsc = !sortBrandAsc;
+            document.getElementById('thBrand').innerText = `ARTIKEL ${sortBrandAsc ? '↑' : '↓'}`;
+            window.renderTable();
+        };
+
+        // --- MODAL ---
+        function openHistoryModal(id) {
+            const db = getDB();
+            let entry = db[id];
+            if (!entry) return;
+            let hist = Array.isArray(entry) ? entry : entry.history;
+            document.getElementById('modalTitle').innerHTML = `
+                <a href="https://www.mimovrste.com/id/${id}" target="_blank" class="brand-tag" style="text-decoration:none; cursor:pointer; font-size:11px;">🌐 ${id}</a> 
+                <span>Zgodovina</span>`;
+
+            const historyRows = hist.slice().reverse().map((h, index) => {
+                let priceDisplay = '';
+                if (h.promo && h.promo < h.std) {
+                    priceDisplay = `<span style="text-decoration:line-through; color:var(--text-dim); font-size:11px; margin-right:6px;">${h.std.toFixed(2)} €</span> <strong style="color:#ff7b72;">${h.promo.toFixed(2)} €</strong>`;
+                } else {
+                    priceDisplay = `<strong>${h.std.toFixed(2)} €</strong>`;
+                }
+                const extraClass = index === 0 ? 'hist-row-current' : '';
+                return `<div class="hist-row ${extraClass}"><span>${h.date} ob ${h.time}</span> <div style="text-align:right;">${priceDisplay}</div></div>`;
+            }).join('');
+            document.getElementById('modalBody').innerHTML = historyRows;
+            document.getElementById('histModal').classList.add('active');
+        }
+
+        document.getElementById('closeModal').onclick = () => document.getElementById('histModal').classList.remove('active');
+        document.getElementById('histModal').onclick = (e) => {
+            if (e.target.id === 'histModal') document.getElementById('histModal').classList.remove('active');
+        };
+
+        // --- GUMBI ---
+        document.getElementById('btnScanNew').onclick = () => {
+            const raw = document.getElementById('idsIn').value;
+            let inputIds = raw.split('\n').map(i => i.trim()).filter(Boolean);
+            if (!inputIds.length) return alert("Vnesi ID-je!");
+            
+            let db = getDB();
+            let dbIds = Object.keys(db);
+            let toRemove = dbIds.filter(id => !inputIds.includes(id));
+            
+            if (toRemove.length > 0) {
+                let displayIds = toRemove.length > 20 ? toRemove.slice(0, 20).join(', ') + ` ... in še ${toRemove.length - 20}` : toRemove.join(', ');
+                if (confirm(`V bazi (${currentLoc}) je ${toRemove.length} artiklov, ki niso na tvojem novem seznamu.\nJih odstranim?\n\nID-ji za izbris: ${displayIds}`)) {
+                    toRemove.forEach(id => delete db[id]);
+                    saveDB(db);
+                    dbIds = Object.keys(db); 
+                    window.renderTable(); 
+                }
+            }
+
+            let newOnly = inputIds.filter(id => !dbIds.includes(id));
+            if (newOnly.length > 0) {
+                sessionNewIds = [...new Set([...sessionNewIds, ...newOnly])];
+                document.querySelector('input[value="new"]').checked = true;
+                document.getElementById('idsIn').value = '';
+                scanLoop(newOnly);
+            } else {
+                alert("Nič novega za skeniranje! Vsi vnešeni artikli so že v bazi.");
+                document.getElementById('idsIn').value = '';
+                window.renderTable(); 
+            }
+        };
+
+        document.getElementById('btnRescanAll').onclick = () => {
+            const db = getDB();
+            const allIds = Object.keys(db);
+            if (!allIds.length) return alert(`Baza za ${currentLoc} je prazna!`);
+            document.querySelector('input[value="all"]').checked = true;
+            scanLoop(allIds);
+        };
+
+        document.getElementById('btnClearDB').onclick = () => {
+            if(confirm(`Zares izbrišem VSE artikle in celotno zgodovino za poslovalnico ${currentLoc}? To bo izbrisalo tudi v oblaku!`)) {
+                saveDB({}); // Shranimo prazno bazo in prepišemo Firestore
+                sessionNewIds = []; selectedDiscounts.clear(); 
+                window.renderTable();
+                updateStatus(`Status: Baza za ${currentLoc} je bila izbrisana.`);
+            }
+        };
+
+        document.getElementById('btnPrintList').onclick = () => {
+            if (currentFilteredIds.length === 0) return alert("Seznam za tiskanje je prazen!");
+            const db = getDB();
+            const filterMode = document.querySelector('input[name="filterMode"]:checked').value;
+            let filterName = "Prikaži vse";
+            
+            if (filterMode === 'promo') {
+                filterName = "Samo PROMO";
+                if (selectedDiscounts.size > 0) filterName += " (" + Array.from(selectedDiscounts).map(d => "-" + d + "%").join(", ") + ")";
+            } else if (filterMode === 'new') filterName = "Samo NOVE";
+            else if (filterMode === 'diff') filterName = "Samo SPREMEMBE";
+            else if (filterMode === 'dotYellow') filterName = "Rumeni krogeci";
+            else if (filterMode === 'dotPurple') filterName = "Vijolčni krogeci";
+            else if (filterMode === 'dotRed') filterName = "Za spremenit (!!)";
+
+            let html = `<html><head><title>Seznam za tisk - ${currentLoc}</title>
+            <style>
+                body { font-family: Arial, sans-serif; font-size: 12px; color: #000; padding: 20px;}
+                table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                th, td { border: 1px solid #aaa; padding: 10px; text-align: left; vertical-align: middle; }
+                th { background: #f0f0f0; font-weight: bold; }
+                .circle { width: 18px; height: 18px; border: 2px solid #000; border-radius: 50%; display: inline-block; }
+                .old-price { text-decoration: line-through; color: #777; font-size: 11px; margin-right: 6px; }
+                .new-price { font-weight: bold; font-size: 15px; }
+                h2 { margin-bottom: 5px; }
+            </style>
+            </head><body>
+            <h2>PromoPriceZex - ${currentLoc}</h2>
+            <div style="color: #555; margin-bottom: 20px; font-size:13px;">Aktivni filter: <b>${filterName}</b><br>Skupaj artiklov za tisk: <b>${currentFilteredIds.length}</b></div>
+            <table><thead><tr><th style="width:40px; text-align:center;">✓</th><th style="width:90px;">ID</th><th>Artikel</th><th style="width:130px;">Cena</th></tr></thead><tbody>`;
+
+            currentFilteredIds.forEach(id => {
+                let entry = db[id];
+                let hist = Array.isArray(entry) ? entry : entry.history;
+                const last = hist[hist.length - 1];
+                const brand = getBrand(last.title);
+                let priceHtml = '';
+                if (last.promo && last.promo < last.std) priceHtml = `<span class="old-price">${last.std.toFixed(2)} €</span><span class="new-price">${last.promo.toFixed(2)} €</span>`;
+                else priceHtml = `<span class="new-price">${last.std.toFixed(2)} €</span>`;
+
+                html += `<tr><td style="text-align:center;"><div class="circle"></div></td><td>${id}</td><td><strong>${brand}</strong> ${last.title}</td><td>${priceHtml}</td></tr>`;
+            });
+            html += `</tbody></table></body></html>`;
+            const printWindow = window.open('', '', 'width=900,height=600');
+            printWindow.document.write(html);
+            printWindow.document.close();
+            setTimeout(() => printWindow.print(), 250);
+        };
+    </script>
+</body>
+</html>

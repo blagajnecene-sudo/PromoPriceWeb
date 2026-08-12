@@ -1,0 +1,13 @@
+{
+  "name": "promopriceweb-auto-scan",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Urni server-side scan cen + Discord obvestila (GitHub Actions cron)",
+  "scripts": {
+    "scan": "node scripts/auto-scan.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "firebase-admin": "^12.7.0"
+  }
+}
