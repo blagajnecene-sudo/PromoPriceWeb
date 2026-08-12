@@ -197,14 +197,17 @@
 
         <div class="header-bar">
             <h2 style="margin:0; color:var(--accent-blue); display:flex; align-items:center;">
-                🏷️ PromoPriceZex <span style="font-size:12px; color:var(--text-dim); margin-left:10px;">WEB PRO</span> <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">v1.6.0</span>
+                🏷️ PromoPriceZex <span style="font-size:12px; color:var(--text-dim); margin-left:10px;">WEB PRO</span> <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">v1.7.0</span>
                 <div style="display:flex; margin-left: 20px;">
                     <button id="locDisplay" class="loc-badge" onclick="changeLocation()" title="Spremeni lokacijo">📍 LOKACIJA</button>
                     <button class="loc-badge" style="background: var(--btn-gray-bg); border: 1px solid var(--border-color); color: var(--text-main);" onclick="openSettings()" title="Nastavitve obvestil">⚙️ Nastavitve</button>
                     <button class="btn-logout" onclick="handleLogout()">Odjava</button>
                 </div>
             </h2>
-            <div id="statusInfo">Status: Pripravljen. <span id="dbCount" style="display:none;">0</span></div>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:3px;">
+                <div id="statusInfo">Status: Pripravljen. <span id="dbCount" style="display:none;">0</span></div>
+                <div id="lastUpdateInfo" style="font-size:11px; color:var(--text-dim); font-family:monospace;"></div>
+            </div>
         </div>
 
         <div class="layout">
@@ -379,6 +382,8 @@
         let currentNotifyEnabled = true;
         let currentAutoScanEnabled = true;
         let currentHeartbeatEnabled = false;
+        let currentLastUpdated = null;
+        let currentLastUpdateSource = null;
 
         // --- AUTH SISTEM ---
         onAuthStateChanged(auth, (user) => {
@@ -458,12 +463,16 @@
                         currentNotifyEnabled = s.notifyEnabled !== false;
                         currentAutoScanEnabled = s.autoScanEnabled !== false;
                         currentHeartbeatEnabled = s.heartbeatEnabled === true;
+                        currentLastUpdated = s.lastUpdated || null;
+                        currentLastUpdateSource = s.lastUpdateSource || null;
                     } else {
                         currentWebhookUrl = null;
                         currentIntervalHours = 1;
                         currentNotifyEnabled = true;
                         currentAutoScanEnabled = true;
                         currentHeartbeatEnabled = false;
+                        currentLastUpdated = null;
+                        currentLastUpdateSource = null;
                     }
                 } catch (error) {
                     console.error("Napaka pri branju nastavitev:", error);
@@ -472,8 +481,11 @@
                     currentNotifyEnabled = true;
                     currentAutoScanEnabled = true;
                     currentHeartbeatEnabled = false;
+                    currentLastUpdated = null;
+                    currentLastUpdateSource = null;
                 }
 
+                renderLastUpdateInfo();
                 window.renderTable();
             }
         }
@@ -530,7 +542,7 @@
                     notifyEnabled: currentNotifyEnabled,
                     heartbeatEnabled: currentHeartbeatEnabled,
                     autoScanEnabled: currentAutoScanEnabled
-                });
+                }, { merge: true });
                 const msg = document.getElementById('webhookSaveMsg');
                 msg.style.display = 'block';
                 setTimeout(() => { msg.style.display = 'none'; }, 2000);
@@ -610,9 +622,40 @@
             return title ? title.trim().split(/\s+/)[0].toUpperCase() : "NEZNANO"; 
         }
 
-        function formatTime(s) { 
+        function formatTime(s) {
             if (s < 0) s = 0;
-            return `${Math.floor(s/60)}m ${Math.floor(s%60)}s`; 
+            return `${Math.floor(s/60)}m ${Math.floor(s%60)}s`;
+        }
+
+        function formatLastUpdate(iso, source) {
+            if (!iso) return 'Zadnja osvežitev: ni podatka';
+            const d = new Date(iso);
+            const dateStr = d.toLocaleDateString('sl-SI');
+            const timeStr = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+            const sourceLabel = source === 'auto' ? '🤖 samodejno' : (source === 'manual' ? '🖐️ ročno' : (source || 'neznano'));
+            return `Zadnja osvežitev: ${dateStr} ${timeStr} (${sourceLabel})`;
+        }
+
+        function renderLastUpdateInfo() {
+            const el = document.getElementById('lastUpdateInfo');
+            if (el) el.innerText = formatLastUpdate(currentLastUpdated, currentLastUpdateSource);
+        }
+
+        async function recordLastUpdate(source) {
+            const iso = new Date().toISOString();
+            currentLastUpdated = iso;
+            currentLastUpdateSource = source;
+            renderLastUpdateInfo();
+
+            if (!currentLoc) return;
+            try {
+                await setDoc(doc(firestoreDB, "nastavitve_poslovalnic", currentLoc), {
+                    lastUpdated: iso,
+                    lastUpdateSource: source
+                }, { merge: true });
+            } catch (e) {
+                console.error("Napaka pri shranjevanju časa zadnje osvežitve:", e);
+            }
         }
 
         function updateStatus(htmlContent) {
@@ -766,6 +809,8 @@
                 } else {
                     updateStatus(`<span style="color:#2ea043; font-weight:bold;">✅ Končano! V bazi (${currentLoc}) je ${Object.keys(db).length} artiklov.</span>`);
                 }
+
+                await recordLastUpdate('manual');
 
             } catch (error) {
                 console.error("Napaka med zanko:", error);

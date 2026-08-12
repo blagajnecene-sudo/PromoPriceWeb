@@ -225,6 +225,10 @@ async function processLocation(loc) {
     }
 
     await docRef.set(dbData);
+    await db.collection('nastavitve_poslovalnic').doc(loc).set({
+        lastUpdated: new Date().toISOString(),
+        lastUpdateSource: 'auto'
+    }, { merge: true });
     console.log(`[${loc}] Skeniranih ${ids.length} artiklov, ${changes.length} sprememb.`);
 
     if (changes.length) {
