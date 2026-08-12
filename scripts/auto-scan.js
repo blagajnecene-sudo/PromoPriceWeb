@@ -5,8 +5,8 @@ const admin = require('firebase-admin');
 const cheerio = require('cheerio');
 
 const SCAN_API = 'https://promoprice.onrender.com/api/scan';
-const BATCH_SIZE = 3;
-const DELAY_MS = 1500;
+const BATCH_SIZE = 5;
+const DELAY_MS = 1000;
 
 if (!process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
     console.error('Manjka FIREBASE_SERVICE_ACCOUNT_JSON okoljska spremenljivka.');
