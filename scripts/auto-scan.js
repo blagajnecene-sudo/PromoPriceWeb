@@ -25,9 +25,11 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+const FETCH_TIMEOUT_MS = 20000;
+
 async function scanItem(id) {
     try {
-        const r = await fetch(`${SCAN_API}?id=${id}`);
+        const r = await fetch(`${SCAN_API}?id=${id}`, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
         if (!r.ok) return null;
 
         const data = await r.json();
@@ -155,10 +157,12 @@ async function processLocation(loc) {
     }
 
     const changes = [];
+    console.log(`[${loc}] Začenjam skeniranje ${ids.length} artiklov...`);
 
     for (let i = 0; i < ids.length; i += BATCH_SIZE) {
         const batchIds = ids.slice(i, i + BATCH_SIZE);
         const results = await Promise.all(batchIds.map(scanItem));
+        console.log(`[${loc}] ${Math.min(i + BATCH_SIZE, ids.length)}/${ids.length} preverjenih...`);
 
         results.forEach((res, idx) => {
             if (!res) return;
