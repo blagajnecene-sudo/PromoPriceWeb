@@ -197,7 +197,7 @@
 
         <div class="header-bar">
             <h2 style="margin:0; color:var(--accent-blue); display:flex; align-items:center;">
-                🏷️ PromoPriceZex <span style="font-size:12px; color:var(--text-dim); margin-left:10px;">WEB PRO</span> <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">v1.5.0</span>
+                🏷️ PromoPriceZex <span style="font-size:12px; color:var(--text-dim); margin-left:10px;">WEB PRO</span> <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">v1.6.0</span>
                 <div style="display:flex; margin-left: 20px;">
                     <button id="locDisplay" class="loc-badge" onclick="changeLocation()" title="Spremeni lokacijo">📍 LOKACIJA</button>
                     <button class="loc-badge" style="background: var(--btn-gray-bg); border: 1px solid var(--border-color); color: var(--text-main);" onclick="openSettings()" title="Nastavitve obvestil">⚙️ Nastavitve</button>
@@ -978,13 +978,53 @@
         };
 
         // --- MODAL ---
+        function buildPriceChartSVG(hist) {
+            if (hist.length < 2) {
+                return `<div style="color:var(--text-dim); font-size:12px; text-align:center; padding:15px 0;">Premalo podatkov za graf (potrebna vsaj 2 zapisa).</div>`;
+            }
+
+            const W = 340, H = 140;
+            const chartTop = 14, chartBottom = 105;
+            const leftPad = 4, rightPad = 4;
+            const plotHeight = chartBottom - chartTop;
+            const plotWidth = W - leftPad - rightPad;
+
+            const prices = hist.map(h => (h.promo && h.promo < h.std) ? h.promo : h.std);
+            const isPromo = hist.map(h => !!(h.promo && h.promo < h.std));
+            const minP = Math.min(...prices);
+            const maxP = Math.max(...prices);
+            const range = (maxP - minP) || 1;
+
+            const xFor = (i) => leftPad + (prices.length > 1 ? i * (plotWidth / (prices.length - 1)) : plotWidth / 2);
+            const yFor = (p) => chartBottom - ((p - minP) / range) * plotHeight;
+
+            const linePoints = prices.map((p, i) => `${xFor(i).toFixed(1)},${yFor(p).toFixed(1)}`).join(' ');
+
+            const circles = prices.map((p, i) => {
+                const color = isPromo[i] ? '#ff7b72' : '#58a6ff';
+                const label = `${hist[i].date} ${hist[i].time} — ${p.toFixed(2)} €`;
+                return `<circle cx="${xFor(i).toFixed(1)}" cy="${yFor(p).toFixed(1)}" r="3.5" fill="${color}"><title>${label}</title></circle>`;
+            }).join('');
+
+            return `
+                <svg viewBox="0 0 ${W} ${H}" width="100%" height="140">
+                    <text x="${leftPad}" y="${chartTop - 4}" fill="#8b949e" font-size="10">${maxP.toFixed(2)} €</text>
+                    <text x="${leftPad}" y="${chartBottom + 12}" fill="#8b949e" font-size="10">${minP.toFixed(2)} €</text>
+                    <polyline points="${linePoints}" fill="none" stroke="#58a6ff" stroke-width="2"/>
+                    ${circles}
+                    <text x="${leftPad}" y="${H - 4}" fill="#8b949e" font-size="9" text-anchor="start">${hist[0].date}</text>
+                    <text x="${W - rightPad}" y="${H - 4}" fill="#8b949e" font-size="9" text-anchor="end">${hist[hist.length - 1].date}</text>
+                </svg>
+            `;
+        }
+
         function openHistoryModal(id) {
             const db = getDB();
             let entry = db[id];
             if (!entry) return;
             let hist = Array.isArray(entry) ? entry : entry.history;
             document.getElementById('modalTitle').innerHTML = `
-                <a href="https://www.mimovrste.com/id/${id}" target="_blank" class="brand-tag" style="text-decoration:none; cursor:pointer; font-size:11px;">🌐 ${id}</a> 
+                <a href="https://www.mimovrste.com/id/${id}" target="_blank" class="brand-tag" style="text-decoration:none; cursor:pointer; font-size:11px;">🌐 ${id}</a>
                 <span>Zgodovina</span>`;
 
             const historyRows = hist.slice().reverse().map((h, index) => {
@@ -997,7 +1037,24 @@
                 const extraClass = index === 0 ? 'hist-row-current' : '';
                 return `<div class="hist-row ${extraClass}"><span>${h.date} ob ${h.time}</span> <div style="text-align:right;">${priceDisplay}</div></div>`;
             }).join('');
-            document.getElementById('modalBody').innerHTML = historyRows;
+
+            document.getElementById('modalBody').innerHTML = `
+                <button class="btn-gray" id="btnShowChart" style="width:100%; margin-bottom:12px; font-size:12px; padding:8px;">📈 Prikaži graf</button>
+                <div id="histChartWrap" style="display:none; margin-bottom:15px;"></div>
+                ${historyRows}
+            `;
+            document.getElementById('btnShowChart').onclick = function() {
+                const wrap = document.getElementById('histChartWrap');
+                if (wrap.style.display === 'none') {
+                    wrap.innerHTML = buildPriceChartSVG(hist);
+                    wrap.style.display = 'block';
+                    this.innerText = '📉 Skrij graf';
+                } else {
+                    wrap.style.display = 'none';
+                    this.innerText = '📈 Prikaži graf';
+                }
+            };
+
             document.getElementById('histModal').classList.add('active');
         }
 
