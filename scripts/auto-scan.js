@@ -126,6 +126,28 @@ async function sendDiscordNotification(webhookUrl, loc, changes) {
     }
 }
 
+async function sendHeartbeat(webhookUrl, loc, itemCount) {
+    if (!webhookUrl) return;
+
+    try {
+        const r = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                embeds: [{
+                    title: `✅ Preverjeno — ${loc}`,
+                    description: `Brez sprememb cen. Preverjenih ${itemCount} artiklov.`,
+                    color: 0x8b949e,
+                    timestamp: new Date().toISOString()
+                }]
+            })
+        });
+        if (!r.ok) console.error(`Discord webhook (heartbeat) vrnil status ${r.status} za ${loc}`);
+    } catch (e) {
+        console.error('Napaka pri pošiljanju heartbeat obvestila:', e.message);
+    }
+}
+
 async function processLocation(loc) {
     const docRef = db.collection('baza_poslovalnic').doc(loc);
     const snap = await docRef.get();
@@ -149,6 +171,7 @@ async function processLocation(loc) {
     const webhookUrl = settings.webhookUrl || null;
     const intervalHours = settings.intervalHours || 1;
     const notifyEnabled = settings.notifyEnabled !== false;
+    const heartbeatEnabled = settings.heartbeatEnabled === true;
 
     const currentHour = new Date().getUTCHours();
     if (currentHour % intervalHours !== 0) {
@@ -204,7 +227,11 @@ async function processLocation(loc) {
     await docRef.set(dbData);
     console.log(`[${loc}] Skeniranih ${ids.length} artiklov, ${changes.length} sprememb.`);
 
-    if (changes.length && notifyEnabled) await sendDiscordNotification(webhookUrl, loc, changes);
+    if (changes.length) {
+        if (notifyEnabled) await sendDiscordNotification(webhookUrl, loc, changes);
+    } else if (heartbeatEnabled) {
+        await sendHeartbeat(webhookUrl, loc, ids.length);
+    }
 }
 
 async function main() {
