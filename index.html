@@ -197,7 +197,7 @@
 
         <div class="header-bar">
             <h2 style="margin:0; color:var(--accent-blue); display:flex; align-items:center;">
-                🏷️ PromoPriceZex <span style="font-size:12px; color:var(--text-dim); margin-left:10px;">WEB PRO</span>
+                🏷️ PromoPriceZex <span style="font-size:12px; color:var(--text-dim); margin-left:10px;">WEB PRO</span> <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">v1.4.0</span>
                 <div style="display:flex; margin-left: 20px;">
                     <button id="locDisplay" class="loc-badge" onclick="changeLocation()" title="Spremeni lokacijo">📍 LOKACIJA</button>
                     <button class="loc-badge" style="background: var(--btn-gray-bg); border: 1px solid var(--border-color); color: var(--text-main);" onclick="openSettings()" title="Nastavitve obvestil">⚙️ Nastavitve</button>
@@ -210,7 +210,8 @@
         <div class="layout">
             <div class="sidebar">
                 <button id="btnRescanAll" class="btn-blue">🔄 OSVEŽI VSE ARTIKLE</button>
-                
+                <button id="btnStopScan" class="btn-red" style="display:none; margin-top:5px;">⏹ USTAVI SKENIRANJE</button>
+
                 <div class="add-section">
                     <div class="add-section-title">Dodaj nove artikle</div>
                     <textarea id="idsIn" placeholder="Prilepi ID-je...&#10;1234567&#10;9876543"></textarea>
@@ -653,21 +654,31 @@
 
         // --- 3. MASOVNO SKENIRANJE ---
         let isScanning = false;
-        
+        let stopRequested = false;
+
+        document.getElementById('btnStopScan').onclick = () => {
+            stopRequested = true;
+            updateStatus('⏹ Ustavljanje po trenutni seriji...');
+        };
+
         async function scanLoop(ids) {
             if (isScanning) return alert("Skeniranje že poteka!");
             isScanning = true;
+            stopRequested = false;
 
             const btnRescan = document.getElementById('btnRescanAll');
             const btnNew = document.getElementById('btnScanNew');
+            const btnStop = document.getElementById('btnStopScan');
             const pBar = document.getElementById('pBar');
             if (btnRescan) btnRescan.disabled = true;
             if (btnNew) btnNew.disabled = true;
+            if (btnStop) btnStop.style.display = 'block';
 
             let db = getDB();
             const batchSize = 3;
             const delayMs = 1500;
             const avgTimePerBatch = 2.2;
+            let wasStopped = false;
 
             try {
                 for (let i = 0; i < ids.length; i += batchSize) {
@@ -720,26 +731,38 @@
                     });
 
                     saveDB(db);
-                    window.renderTable(); 
-                    
+                    window.renderTable();
+
+                    if (stopRequested) {
+                        wasStopped = true;
+                        break;
+                    }
+
                     if (i + batchSize < ids.length) {
                         await new Promise(resolve => setTimeout(resolve, delayMs));
                     }
                 }
 
                 if (pBar) {
-                    pBar.style.width = '100%';
-                    setTimeout(() => pBar.style.width = '0%', 2000); 
+                    pBar.style.width = wasStopped ? '0%' : '100%';
+                    if (!wasStopped) setTimeout(() => pBar.style.width = '0%', 2000);
                 }
-                updateStatus(`<span style="color:#2ea043; font-weight:bold;">✅ Končano! V bazi (${currentLoc}) je ${Object.keys(db).length} artiklov.</span>`);
+
+                if (wasStopped) {
+                    updateStatus(`<span style="color:#d29922; font-weight:bold;">⏹ Ustavljeno. V bazi (${currentLoc}) je ${Object.keys(db).length} artiklov.</span>`);
+                } else {
+                    updateStatus(`<span style="color:#2ea043; font-weight:bold;">✅ Končano! V bazi (${currentLoc}) je ${Object.keys(db).length} artiklov.</span>`);
+                }
 
             } catch (error) {
                 console.error("Napaka med zanko:", error);
                 updateStatus(`<span style="color:#da3633; font-weight:bold;">❌ Napaka pri obdelavi!</span>`);
             } finally {
                 isScanning = false;
-                if (btnRescan) btnRescan.disabled = false; 
+                stopRequested = false;
+                if (btnRescan) btnRescan.disabled = false;
                 if (btnNew) btnNew.disabled = false;
+                if (btnStop) btnStop.style.display = 'none';
             }
         }
 
