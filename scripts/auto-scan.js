@@ -7,6 +7,9 @@ const cheerio = require('cheerio');
 const SCAN_API = 'https://promoprice.onrender.com/api/scan';
 const BATCH_SIZE = 5;
 const DELAY_MS = 1000;
+const TIMEZONE = 'Europe/Ljubljana';
+const QUIET_HOUR_START = 21; // 21:00 - obvestila utihnejo
+const QUIET_HOUR_END = 7;    // 07:00 - obvestila se spet vklopijo
 
 if (!process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
     console.error('Manjka FIREBASE_SERVICE_ACCOUNT_JSON okoljska spremenljivka.');
@@ -23,6 +26,23 @@ function parsePrice(str) {
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getLocalHourAndWeekday(timeZone) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone, hour: 'numeric', hour12: false, weekday: 'short'
+    }).formatToParts(new Date());
+    let hour = parseInt(parts.find(p => p.type === 'hour').value, 10);
+    if (hour === 24) hour = 0;
+    const weekday = parts.find(p => p.type === 'weekday').value; // 'Sun', 'Mon', ...
+    return { hour, weekday };
+}
+
+function isQuietTime() {
+    const { hour, weekday } = getLocalHourAndWeekday(TIMEZONE);
+    if (weekday === 'Sun') return true; // cela nedelja brez obvestil
+    if (hour >= QUIET_HOUR_START || hour < QUIET_HOUR_END) return true; // vsak dan 21:00-07:00
+    return false;
 }
 
 const FETCH_TIMEOUT_MS = 20000;
@@ -231,10 +251,15 @@ async function processLocation(loc) {
     }, { merge: true });
     console.log(`[${loc}] Skeniranih ${ids.length} artiklov, ${changes.length} sprememb.`);
 
+    const quiet = isQuietTime();
     if (changes.length) {
-        if (notifyEnabled) await sendDiscordNotification(webhookUrl, loc, changes);
+        if (notifyEnabled) {
+            if (quiet) console.log(`[${loc}] Tiho obdobje (ned. ali 21:00-07:00) - Discord obvestilo o spremembah preskočeno.`);
+            else await sendDiscordNotification(webhookUrl, loc, changes);
+        }
     } else if (heartbeatEnabled) {
-        await sendHeartbeat(webhookUrl, loc, ids.length);
+        if (quiet) console.log(`[${loc}] Tiho obdobje (ned. ali 21:00-07:00) - heartbeat preskočen.`);
+        else await sendHeartbeat(webhookUrl, loc, ids.length);
     }
 }
 
