@@ -5,8 +5,8 @@ const admin = require('firebase-admin');
 const cheerio = require('cheerio');
 
 const SCAN_API = 'https://promoprice.onrender.com/api/scan';
-const BATCH_SIZE = 5;
-const DELAY_MS = 1000;
+const BATCH_SIZE = 3;
+const DELAY_MS = 1500;
 const MAX_HISTORY = 10; // Firestore ima limit 1 MiB/dokument - zgodovina se ne sme kopičiti brez meje
 const TIMEZONE = 'Europe/Ljubljana';
 const QUIET_HOUR_START = 21; // 21:00 - obvestila utihnejo

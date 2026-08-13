@@ -197,7 +197,7 @@
 
         <div class="header-bar">
             <h2 style="margin:0; color:var(--accent-blue); display:flex; align-items:center;">
-                🏷️ PromoPriceZex <span style="font-size:12px; color:var(--text-dim); margin-left:10px;">WEB PRO</span> <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">v1.7.2</span>
+                🏷️ PromoPriceZex <span style="font-size:12px; color:var(--text-dim); margin-left:10px;">WEB PRO</span> <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">v1.7.3</span>
                 <div style="display:flex; margin-left: 20px;">
                     <button id="locDisplay" class="loc-badge" onclick="changeLocation()" title="Spremeni lokacijo">📍 LOKACIJA</button>
                     <button class="loc-badge" style="background: var(--btn-gray-bg); border: 1px solid var(--border-color); color: var(--text-main);" onclick="openSettings()" title="Nastavitve obvestil">⚙️ Nastavitve</button>
@@ -739,9 +739,9 @@
             if (btnStop) btnStop.style.display = 'block';
 
             let db = getDB();
-            const batchSize = 5;
-            const delayMs = 1000;
-            const avgTimePerBatch = 1.7;
+            const batchSize = 3;
+            const delayMs = 1500;
+            const avgTimePerBatch = 2.2;
             let wasStopped = false;
 
             try {
