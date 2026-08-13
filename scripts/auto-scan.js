@@ -7,6 +7,7 @@ const cheerio = require('cheerio');
 const SCAN_API = 'https://promoprice.onrender.com/api/scan';
 const BATCH_SIZE = 5;
 const DELAY_MS = 1000;
+const MAX_HISTORY = 10; // Firestore ima limit 1 MiB/dokument - zgodovina se ne sme kopičiti brez meje
 const TIMEZONE = 'Europe/Ljubljana';
 const QUIET_HOUR_START = 21; // 21:00 - obvestila utihnejo
 const QUIET_HOUR_END = 7;    // 07:00 - obvestila se spet vklopijo
@@ -180,6 +181,15 @@ async function processLocation(loc) {
         return;
     }
 
+    // Firestore dovoljuje največ 1 MiB na dokument - normaliziraj obliko in
+    // vsili omejitev zgodovine takoj ob branju, ne šele ob morebitnem novem zapisu.
+    for (const id of ids) {
+        const entry = dbData[id];
+        let hist = Array.isArray(entry) ? entry : (entry && entry.history) || [];
+        if (hist.length > MAX_HISTORY) hist = hist.slice(-MAX_HISTORY);
+        dbData[id] = { history: hist };
+    }
+
     const settingsSnap = await db.collection('nastavitve_poslovalnic').doc(loc).get();
     const settings = settingsSnap.exists ? settingsSnap.data() : {};
     const autoScanEnabled = settings.autoScanEnabled !== false;
@@ -234,11 +244,8 @@ async function processLocation(loc) {
                 });
             }
 
-            if (!dbData[id] || Array.isArray(dbData[id])) {
-                dbData[id] = { history: Array.isArray(dbData[id]) ? dbData[id] : [] };
-            }
             dbData[id].history.push(res);
-            if (dbData[id].history.length > 20) dbData[id].history.shift();
+            while (dbData[id].history.length > MAX_HISTORY) dbData[id].history.shift();
         });
 
         if (i + BATCH_SIZE < ids.length) await sleep(DELAY_MS);
@@ -266,7 +273,11 @@ async function processLocation(loc) {
 async function main() {
     const locationDocs = await db.collection('baza_poslovalnic').listDocuments();
     for (const docRef of locationDocs) {
-        await processLocation(docRef.id);
+        try {
+            await processLocation(docRef.id);
+        } catch (e) {
+            console.error(`[${docRef.id}] Napaka pri obdelavi lokacije, nadaljujem z ostalimi:`, e.message);
+        }
     }
 }
 
