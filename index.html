@@ -197,7 +197,7 @@
 
         <div class="header-bar">
             <h2 style="margin:0; color:var(--accent-blue); display:flex; align-items:center;">
-                🏷️ PromoPriceZex <span style="font-size:12px; color:var(--text-dim); margin-left:10px;">WEB PRO</span> <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">v1.7.3</span>
+                🏷️ PromoPriceZex <span style="font-size:12px; color:var(--text-dim); margin-left:10px;">WEB PRO</span> <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">v1.7.4</span>
                 <div style="display:flex; margin-left: 20px;">
                     <button id="locDisplay" class="loc-badge" onclick="changeLocation()" title="Spremeni lokacijo">📍 LOKACIJA</button>
                     <button class="loc-badge" style="background: var(--btn-gray-bg); border: 1px solid var(--border-color); color: var(--text-main);" onclick="openSettings()" title="Nastavitve obvestil">⚙️ Nastavitve</button>
@@ -384,7 +384,7 @@
         let currentHeartbeatEnabled = false;
         let currentLastUpdated = null;
         let currentLastUpdateSource = null;
-        const MAX_HISTORY = 10; // Firestore ima limit 1 MiB/dokument - zgodovina se ne sme kopičiti brez meje
+        const MAX_HISTORY = 5; // Firestore ima limit 1 MiB/dokument - zgodovina se ne sme kopičiti brez meje
 
         // --- AUTH SISTEM ---
         onAuthStateChanged(auth, (user) => {
